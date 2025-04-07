@@ -34,26 +34,26 @@ const AuthContext = createContext<AuthContextType>({
   logout: () => {},
 });
 
-// Cookie options based on environment
-const getCookieOptions = () => ({
-  expires: 7,
-  // Use more permissive cookie settings for better mobile compatibility
-  sameSite: 'lax' as const,
-  // Only use secure in production and when on HTTPS
-  ...(process.env.NODE_ENV === 'production' && window.location.protocol === 'https:' && {
-    secure: false
-  })
-});
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // Load user data from cookies on mount
+  // Load user data from localStorage on mount
   useEffect(() => {
-    const loadUserFromCookies = () => {
+    const loadUserFromStorage = () => {
       try {
+        // Try to get user data from localStorage first (more reliable on mobile)
+        const storedUser = localStorage.getItem('user_data');
+
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          setUser(userData);
+          setIsLoading(false);
+          return;
+        }
+
+        // Fallback to cookies if localStorage is not available
         const token = Cookies.get('auth_token');
         const userCookie = Cookies.get('user_data');
 
@@ -64,15 +64,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const userData = JSON.parse(userCookie);
         setUser(userData);
+
+        // Also store in localStorage for future use
+        localStorage.setItem('user_data', JSON.stringify(userData));
       } catch (error) {
         console.error('Error loading user data:', error);
-        // Don't remove cookies on parse error, they might be valid on next load
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadUserFromCookies();
+    loadUserFromStorage();
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -93,26 +95,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         accessLevel: 'Full',
       };
 
-      // Store authentication token and user data
-      const cookieOptions = getCookieOptions();
-      console.log('Setting cookies with options:', cookieOptions);
+      // Store in localStorage (more reliable on mobile)
+      localStorage.setItem('user_data', JSON.stringify(mockUser));
+      localStorage.setItem('auth_token', 'mock_jwt_token');
 
-      // Set cookies immediately
-      Cookies.set('auth_token', 'mock_jwt_token', cookieOptions);
-      Cookies.set('user_data', JSON.stringify(mockUser), cookieOptions);
-
-      // Verify cookies were set
-      const token = Cookies.get('auth_token');
-      const userCookie = Cookies.get('user_data');
-      console.log('Cookies set successfully:', !!token, !!userCookie);
+      // Also set cookies as backup
+      Cookies.set('auth_token', 'mock_jwt_token', {
+        expires: 7,
+        sameSite: 'lax'
+      });
+      Cookies.set('user_data', JSON.stringify(mockUser), {
+        expires: 7,
+        sameSite: 'lax'
+      });
 
       // Set user state
       setUser(mockUser);
 
-      // Use a small delay before navigation to ensure state is updated
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 300);
+      // Navigate after state is updated
+      router.push('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -120,9 +121,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    // Remove all auth-related cookies
+    // Remove from localStorage
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_data');
+
+    // Remove cookies
     Cookies.remove('auth_token');
     Cookies.remove('user_data');
+
     setUser(null);
     router.push('/login');
   };

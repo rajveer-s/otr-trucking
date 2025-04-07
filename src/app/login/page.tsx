@@ -32,7 +32,34 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      // Direct login without any redirect in this component
       await login(data.email, data.password);
+    } catch (error) {
+      toast.error('Invalid email or password. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Direct login function for mobile devices
+  const handleDirectLogin = async () => {
+    const emailInput = document.getElementById('email') as HTMLInputElement;
+    const passwordInput = document.getElementById('password') as HTMLInputElement;
+
+    if (!emailInput || !passwordInput) return;
+
+    const email = emailInput.value;
+    const password = passwordInput.value;
+
+    if (!email || !password) {
+      toast.error('Please enter both email and password');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      await login(email, password);
     } catch (error) {
       toast.error('Invalid email or password. Please try again.');
     } finally {
@@ -132,6 +159,13 @@ export default function LoginPage() {
                 type="submit"
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white h-14 text-lg touch-manipulation"
                 disabled={isLoading}
+                onClick={(e) => {
+                  // For mobile devices, use direct login
+                  if (window.innerWidth <= 768) {
+                    e.preventDefault();
+                    handleDirectLogin();
+                  }
+                }}
               >
                 {isLoading ? (
                   <>
