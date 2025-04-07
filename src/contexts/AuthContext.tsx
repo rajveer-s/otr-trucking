@@ -39,8 +39,8 @@ const getCookieOptions = () => ({
   expires: 7,
   // Use more permissive cookie settings for better mobile compatibility
   sameSite: 'lax' as const,
-  // Only use secure in production
-  ...(process.env.NODE_ENV === 'production' && {
+  // Only use secure in production and when on HTTPS
+  ...(process.env.NODE_ENV === 'production' && window.location.protocol === 'https:' && {
     secure: true
   })
 });
@@ -97,19 +97,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const cookieOptions = getCookieOptions();
       console.log('Setting cookies with options:', cookieOptions);
 
-      // Set cookies with a slight delay to ensure they're properly set
+      // Set cookies immediately
+      Cookies.set('auth_token', 'mock_jwt_token', cookieOptions);
+      Cookies.set('user_data', JSON.stringify(mockUser), cookieOptions);
+
+      // Verify cookies were set
+      const token = Cookies.get('auth_token');
+      const userCookie = Cookies.get('user_data');
+      console.log('Cookies set successfully:', !!token, !!userCookie);
+
+      // Set user state
+      setUser(mockUser);
+
+      // Use a small delay before navigation to ensure state is updated
       setTimeout(() => {
-        Cookies.set('auth_token', 'mock_jwt_token', cookieOptions);
-        Cookies.set('user_data', JSON.stringify(mockUser), cookieOptions);
-
-        // Verify cookies were set
-        const token = Cookies.get('auth_token');
-        const userCookie = Cookies.get('user_data');
-        console.log('Cookies set successfully:', !!token, !!userCookie);
-
-        setUser(mockUser);
         router.push('/dashboard');
-      }, 100);
+      }, 300);
     } catch (error) {
       console.error('Login error:', error);
       throw error;
