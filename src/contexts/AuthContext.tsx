@@ -1,72 +1,88 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { mockUsers } from '@/lib/data/mockData';
-import { User } from '@/types';
 import Cookies from 'js-cookie';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  avatar?: string;
+}
 
 interface AuthContextType {
   user: User | null;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  isLoading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  isLoading: true,
+  login: async () => {},
+  logout: () => {},
+});
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // Load user from cookies on initial load
+  // Load user data from cookies on mount
   useEffect(() => {
-    try {
-      const userCookie = Cookies.get('user');
-      if (userCookie) {
-        setUser(JSON.parse(userCookie));
-      } else {
-        // If no cookie is found, redirect to login
-        router.push('/login');
-      }
-    } catch (error) {
-      console.error('Error loading user from cookies:', error);
-      Cookies.remove('user');
-      router.push('/login');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [router]);
+    const loadUserFromCookies = () => {
+      try {
+        const token = Cookies.get('auth_token');
+        const userCookie = Cookies.get('user_data');
 
-  const login = async (email: string, password: string): Promise<void> => {
-    try {
-      const user = mockUsers.find((u) => u.email === email && u.password === password);
-      if (!user) {
-        throw new Error('Invalid credentials');
-      }
+        if (!token || !userCookie) {
+          setIsLoading(false);
+          return;
+        }
 
-      // Store user data with all required properties
-      const userData: User = {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar,
-        password: user.password,
-        phone: user.phone,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-        ...(user.licenseNumber && { licenseNumber: user.licenseNumber }),
-        ...(user.experience && { experience: user.experience }),
-        ...(user.preferredRoutes && { preferredRoutes: user.preferredRoutes }),
-        ...(user.department && { department: user.department }),
-        ...(user.accessLevel && { accessLevel: user.accessLevel }),
+        const userData = JSON.parse(userCookie);
+        setUser(userData);
+      } catch (error) {
+        console.error('Error loading user data:', error);
+        // Don't remove cookies on parse error, they might be valid on next load
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUserFromCookies();
+  }, []);
+
+  const login = async (email: string, password: string) => {
+    try {
+      // Mock API call - replace with actual API call
+      const mockUser: User = {
+        id: '1',
+        name: 'John Doe',
+        email: email,
+        role: 'owner',
+        avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=faces&q=80',
       };
 
-      setUser(userData);
-      // Store in cookie instead of localStorage
-      Cookies.set('user', JSON.stringify(userData), { expires: 7 }); // Expires in 7 days
+      // Store authentication token (expires in 7 days)
+      Cookies.set('auth_token', 'mock_jwt_token', {
+        expires: 7,
+        secure: true,
+        sameSite: 'strict'
+      });
+
+      // Store user data (expires in 7 days)
+      Cookies.set('user_data', JSON.stringify(mockUser), {
+        expires: 7,
+        secure: true,
+        sameSite: 'strict'
+      });
+
+      setUser(mockUser);
+      router.push('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -74,27 +90,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    // Clear user state
+    // Remove all auth-related cookies
+    Cookies.remove('auth_token');
+    Cookies.remove('user_data');
     setUser(null);
-
-    // Clear cookie
-    Cookies.remove('user');
-
-    // Force a hard reload to clear all state
-    window.location.href = '/login';
+    router.push('/login');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
+export const useAuth = () => useContext(AuthContext);

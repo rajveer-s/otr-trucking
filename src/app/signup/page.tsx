@@ -9,8 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Truck } from 'lucide-react';
-import { BackgroundSlider } from '@/components/ui/background-slider';
+import { Truck, Home, Loader2, Eye, EyeOff } from 'lucide-react';
 
 type FormData = {
   name: string;
@@ -70,14 +69,20 @@ export default function SignupPage() {
   };
 
   return (
-    <>
-      <BackgroundSlider />
-      <div className="flex min-h-screen items-center justify-center p-4">
+    <div className="h-screen relative bg-[#0a0a0a]">
+      <Link
+        href="/"
+        className="absolute left-8 top-8 text-white hover:text-primary transition-colors z-10"
+      >
+        <Home className="h-8 w-8" />
+      </Link>
+
+      <div className="relative h-full flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-full max-w-[400px] space-y-8"
+          className="w-full max-w-[400px] space-y-8 relative"
         >
           <div className="text-center">
             <motion.div
@@ -192,6 +197,6 @@ export default function SignupPage() {
           </motion.div>
         </motion.div>
       </div>
-    </>
+    </div>
   );
 }

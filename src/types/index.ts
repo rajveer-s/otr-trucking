@@ -14,6 +14,7 @@ export interface Load {
   createdAt: string;
   updatedAt: string;
   truckId: string;
+  currentTruckMileage: number;
   fuelStops: FuelStop[];
   totalFuelCost: number;
   totalFuelGallons: number;
@@ -31,6 +32,7 @@ export interface Truck {
   licensePlate: string;
   status: 'available' | 'in-use' | 'maintenance';
   lastMaintenance: string;
+  lastMaintenanceMileage: number;
   nextMaintenance: string;
   mileage: number;
   fuelEfficiency: number;

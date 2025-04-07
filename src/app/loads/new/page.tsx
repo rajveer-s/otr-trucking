@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Loader2, Upload, Plus, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { mockTrucks } from '@/lib/data/mockData';
 
 // Define the fuel stop schema
 const fuelStopSchema = z.object({
@@ -40,7 +41,8 @@ const formSchema = z.object({
   paymentAmount: z.number().min(0, { message: "Payment amount must be positive" }),
   dispatcherPercentage: z.number().min(0, { message: "Dispatcher percentage must be positive" }),
   miles: z.number().min(0, { message: "Miles must be positive" }),
-  truckId: z.string().optional(),
+  truckId: z.string().min(1, { message: "Please select a truck" }),
+  currentTruckMileage: z.number().min(0, { message: "Current mileage must be positive" }),
   fuelStops: z.array(z.object({
     location: z.string(),
     gallons: z.number(),
@@ -57,6 +59,7 @@ export default function NewLoadPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [paperworkPreview, setPaperworkPreview] = useState<string | null>(null);
+  const [selectedTruck, setSelectedTruck] = useState<string>('');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -70,6 +73,7 @@ export default function NewLoadPage() {
       status: 'pending',
       paymentStatus: 'pending',
       truckId: '',
+      currentTruckMileage: undefined,
       fuelStops: [],
       notes: ''
     }
@@ -150,19 +154,29 @@ export default function NewLoadPage() {
     }
   };
 
+  // Update form when truck is selected
+  const handleTruckSelection = (truckId: string) => {
+    const selectedTruck = mockTrucks.find(truck => truck.id === truckId);
+    if (selectedTruck) {
+      form.setValue('truckId', truckId);
+      form.setValue('currentTruckMileage', selectedTruck.mileage);
+    }
+  };
+
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
+    <div className="max-w-2xl mx-auto pt-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
+        className="mb-6"
       >
         <h1 className="text-3xl font-bold">New Load</h1>
-        <p className="text-muted-foreground">Add a new load to your schedule</p>
+        <p className="text-gray-400 mt-1">Add a new load to your schedule</p>
       </motion.div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <FormField
               control={form.control}
@@ -295,9 +309,44 @@ export default function NewLoadPage() {
               name="truckId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Truck ID</FormLabel>
+                  <FormLabel>Select Truck</FormLabel>
                   <FormControl>
-                    <Input placeholder="Truck ID" {...field} />
+                    <select
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        handleTruckSelection(e.target.value);
+                      }}
+                    >
+                      <option value="">Select a truck</option>
+                      {mockTrucks.map((truck) => (
+                        <option key={truck.id} value={truck.id}>
+                          {truck.name} - Current Mileage: {truck.mileage}
+                        </option>
+                      ))}
+                    </select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="currentTruckMileage"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Current Truck Mileage</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="Enter current mileage"
+                      {...field}
+                      value={field.value || ''}
+                      onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                      disabled={!form.watch('truckId')}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -305,173 +354,151 @@ export default function NewLoadPage() {
             />
           </div>
 
-          {/* Fuel Stops Section */}
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium">Fuel Stops</h3>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Fuel Stops</h2>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={handleAddFuelStop}
-                className="flex items-center gap-1"
+                className="bg-[#18181b]/30 border-gray-800/50 hover:bg-[#18181b]/50 hover:border-gray-700/50"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-4 w-4 mr-2" />
                 Add Fuel Stop
               </Button>
             </div>
 
-            {fields.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
+            {fields.length === 0 && (
+              <div className="text-center py-6 text-gray-400">
                 No fuel stops added yet. Click "Add Fuel Stop" to add one.
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {fields.map((field, index) => (
-                  <div key={field.id} className="border rounded-md p-4 space-y-4">
-                    <div className="flex justify-between items-center">
-                      <h4 className="font-medium">Fuel Stop #{index + 1}</h4>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => remove(index)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name={`fuelStops.${index}.location`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Location</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Gas Station Name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name={`fuelStops.${index}.date`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Date</FormLabel>
-                            <FormControl>
-                              <Input type="date" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name={`fuelStops.${index}.gallons`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Gallons</FormLabel>
-                            <FormControl>
-                              <Input type="number" step="0.01" placeholder="100" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name={`fuelStops.${index}.pricePerGallon`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Price per Gallon</FormLabel>
-                            <FormControl>
-                              <Input type="number" step="0.01" placeholder="3.40" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name={`fuelStops.${index}.notes`}
-                        render={({ field }) => (
-                          <FormItem className="md:col-span-2">
-                            <FormLabel>Notes (Optional)</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Any additional notes" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                ))}
               </div>
             )}
+
+            {fields.map((field, index) => (
+              <div key={field.id} className="border rounded-md p-4 space-y-4">
+                <div className="flex justify-between items-center">
+                  <h4 className="font-medium">Fuel Stop #{index + 1}</h4>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => remove(index)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name={`fuelStops.${index}.location`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Location</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Gas Station Name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`fuelStops.${index}.date`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`fuelStops.${index}.gallons`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Gallons</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" placeholder="100" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`fuelStops.${index}.pricePerGallon`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Price per Gallon</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" placeholder="3.40" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`fuelStops.${index}.notes`}
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Notes (Optional)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Any additional notes" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="space-y-4">
             <div>
               <FormLabel>Fuel Receipt</FormLabel>
-              <div className="mt-2">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleReceiptUpload}
-                  className="cursor-pointer"
-                />
-                {receiptPreview && (
-                  <div className="mt-2">
-                    <img
-                      src={receiptPreview}
-                      alt="Receipt preview"
-                      className="max-w-xs rounded-lg"
-                    />
-                  </div>
-                )}
-              </div>
+              <Input
+                type="file"
+                onChange={handleReceiptUpload}
+                className="bg-[#18181b]/30 border-gray-800/50 hover:bg-[#18181b]/50 hover:border-gray-700/50"
+              />
             </div>
 
             <div>
               <FormLabel>Load Paperwork</FormLabel>
-              <div className="mt-2">
-                <Input
-                  type="file"
-                  accept="image/*,.pdf"
-                  onChange={handlePaperworkUpload}
-                  className="cursor-pointer"
-                />
-                {paperworkPreview && (
-                  <div className="mt-2">
-                    <img
-                      src={paperworkPreview}
-                      alt="Paperwork preview"
-                      className="max-w-xs rounded-lg"
-                    />
-                  </div>
-                )}
-              </div>
+              <Input
+                type="file"
+                onChange={handlePaperworkUpload}
+                className="bg-[#18181b]/30 border-gray-800/50 hover:bg-[#18181b]/50 hover:border-gray-700/50"
+              />
             </div>
           </div>
 
-          <div className="flex justify-end gap-4">
+          <div className="flex justify-end gap-3 mt-8">
             <Button
               type="button"
               variant="outline"
-              onClick={() => router.push('/loads')}
+              onClick={() => router.back()}
+              className="bg-[#18181b]/30 border-gray-800/50 hover:bg-[#18181b]/50 hover:border-gray-700/50"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="bg-orange-600 hover:bg-orange-700 text-white border border-orange-500"
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

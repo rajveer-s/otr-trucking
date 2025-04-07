@@ -46,10 +46,7 @@ export default function EditTruckPage({ params }: { params: { truckId: string } 
   const router = useRouter();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [truck, setTruck] = useState<any>(null);
-
-  // Get the truckId directly from params
-  const truckId = params.truckId;
+  const isNewTruck = params.truckId === 'new';
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -69,25 +66,26 @@ export default function EditTruckPage({ params }: { params: { truckId: string } 
   });
 
   useEffect(() => {
-    // In a real app, this would be an API call
-    const truckData = mockTrucks.find(t => t.id === truckId);
-    if (truckData) {
-      setTruck(truckData);
-      form.reset({
-        name: truckData.name || '',
-        make: truckData.make || '',
-        model: truckData.model || '',
-        year: truckData.year ? truckData.year.toString() : '',
-        vin: truckData.vin || '',
-        licensePlate: truckData.licensePlate || '',
-        status: truckData.status || 'available',
-        mileage: truckData.mileage ? truckData.mileage.toString() : '',
-        lastMaintenance: truckData.lastMaintenance || '',
-        nextMaintenance: truckData.nextMaintenance || '',
-        notes: truckData.notes || '',
-      });
+    if (!isNewTruck) {
+      // In a real app, this would be an API call
+      const truckData = mockTrucks.find(t => t.id === params.truckId);
+      if (truckData) {
+        form.reset({
+          name: truckData.name || '',
+          make: truckData.make || '',
+          model: truckData.model || '',
+          year: truckData.year ? truckData.year.toString() : '',
+          vin: truckData.vin || '',
+          licensePlate: truckData.licensePlate || '',
+          status: truckData.status || 'available',
+          mileage: truckData.mileage ? truckData.mileage.toString() : '',
+          lastMaintenance: truckData.lastMaintenance || '',
+          nextMaintenance: truckData.nextMaintenance || '',
+          notes: truckData.notes || '',
+        });
+      }
     }
-  }, [truckId, form]);
+  }, [params.truckId, form, isNewTruck]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -95,33 +93,39 @@ export default function EditTruckPage({ params }: { params: { truckId: string } 
       // In a real app, this would be an API call
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Update the mock data
-      const truckIndex = mockTrucks.findIndex(t => t.id === truckId);
-      if (truckIndex !== -1) {
-        mockTrucks[truckIndex] = {
-          ...mockTrucks[truckIndex],
+      if (isNewTruck) {
+        // Add new truck
+        mockTrucks.push({
+          id: crypto.randomUUID(),
           ...values,
           year: parseInt(values.year),
           mileage: parseInt(values.mileage),
-        };
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+        toast.success('Truck added successfully');
+      } else {
+        // Update existing truck
+        const truckIndex = mockTrucks.findIndex(t => t.id === params.truckId);
+        if (truckIndex !== -1) {
+          mockTrucks[truckIndex] = {
+            ...mockTrucks[truckIndex],
+            ...values,
+            year: parseInt(values.year),
+            mileage: parseInt(values.mileage),
+            updatedAt: new Date().toISOString(),
+          };
+        }
+        toast.success('Truck updated successfully');
       }
 
-      toast.success('Truck updated successfully');
       router.push('/trucks');
     } catch (error) {
-      toast.error('Failed to update truck');
+      toast.error(isNewTruck ? 'Failed to add truck' : 'Failed to update truck');
       console.error(error);
     } finally {
       setIsLoading(false);
     }
-  }
-
-  if (!truck) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-muted-foreground">Truck not found</p>
-      </div>
-    );
   }
 
   return (
@@ -129,16 +133,10 @@ export default function EditTruckPage({ params }: { params: { truckId: string } 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="max-w-2xl mx-auto"
+      className="max-w-2xl mx-auto p-6 pt-16"
     >
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">Edit Truck</h1>
-        <Button
-          variant="outline"
-          onClick={() => router.back()}
-        >
-          Cancel
-        </Button>
+        <h1 className="text-3xl font-bold">{isNewTruck ? 'Add New Truck' : 'Edit Truck'}</h1>
       </div>
 
       <Form {...form}>
@@ -360,10 +358,15 @@ export default function EditTruckPage({ params }: { params: { truckId: string } 
               variant="outline"
               onClick={() => router.back()}
               disabled={isLoading}
+              className="bg-[#18181b]/30 border-gray-800/50 hover:bg-[#18181b]/50 hover:border-gray-700/50"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="bg-orange-600 hover:bg-orange-700 text-white border border-orange-500"
+            >
               {isLoading ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>

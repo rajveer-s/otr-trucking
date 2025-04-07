@@ -26,9 +26,9 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { mockLoads } from '@/lib/data/mockData';
+import { mockLoads, mockTrucks } from '@/lib/data/mockData';
 import { use } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Loader2 } from 'lucide-react';
 
 const fuelStopSchema = z.object({
   id: z.string().optional(),
@@ -49,6 +49,7 @@ const formSchema = z.object({
   dispatcherPercentage: z.string().min(1, { message: "Dispatcher percentage is required" }),
   miles: z.string().min(1, { message: "Miles is required" }),
   truckId: z.string().min(1, 'Truck is required'),
+  currentTruckMileage: z.string().min(1, 'Current truck mileage is required'),
   notes: z.string().optional(),
   fuelStops: z.array(fuelStopSchema),
 });
@@ -63,10 +64,8 @@ export default function EditLoadPage({ params }: { params: { loadId: string } })
   const router = useRouter();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [load, setLoad] = useState<any>(null);
-
-  // Get the loadId directly from params
-  const loadId = params.loadId;
+  const [selectedTruck, setSelectedTruck] = useState<any>(null);
+  const isNewLoad = params.loadId === 'new';
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -80,6 +79,7 @@ export default function EditLoadPage({ params }: { params: { loadId: string } })
       dispatcherPercentage: '',
       miles: '',
       truckId: '',
+      currentTruckMileage: undefined,
       notes: '',
       fuelStops: [],
     },
@@ -90,39 +90,58 @@ export default function EditLoadPage({ params }: { params: { loadId: string } })
     name: 'fuelStops',
   });
 
+  // Watch for truck selection changes
+  const selectedTruckId = form.watch('truckId');
   useEffect(() => {
-    // In a real app, this would be an API call
-    const loadData = mockLoads.find(l => l.id === loadId);
-    if (loadData) {
-      setLoad(loadData);
-      form.reset({
-        name: loadData.name || '',
-        pickupLocation: loadData.pickupCity || '',
-        deliveryLocation: loadData.dropoffCity || '',
-        status: loadData.status || 'pending',
-        paymentStatus: loadData.paymentStatus || 'due',
-        paymentAmount: loadData.paymentAmount ? loadData.paymentAmount.toString() : '',
-        dispatcherPercentage: loadData.dispatcherPercentage ? loadData.dispatcherPercentage.toString() : '',
-        miles: loadData.miles ? loadData.miles.toString() : '',
-        truckId: loadData.truckId || '',
-        notes: loadData.notes || '',
-        fuelStops: loadData.fuelStops ? loadData.fuelStops.map(stop => ({
-          id: stop.id,
-          location: stop.location,
-          gallons: stop.gallons.toString(),
-          pricePerGallon: stop.pricePerGallon.toString(),
-          date: stop.date,
-          notes: stop.notes || '',
-        })) : [],
-      });
+    const truck = mockTrucks.find(t => t.id === selectedTruckId);
+    if (truck) {
+      setSelectedTruck(truck);
+      // Remove pre-filling of mileage
+      form.setValue('currentTruckMileage', undefined);
+    } else {
+      setSelectedTruck(null);
+      form.setValue('currentTruckMileage', undefined);
     }
-  }, [loadId, form]);
+    if (!isNewLoad) {
+      // In a real app, this would be an API call
+      const loadData = mockLoads.find(l => l.id === params.loadId);
+      if (loadData) {
+        form.reset({
+          name: loadData.name || '',
+          pickupLocation: loadData.pickupCity || '',
+          deliveryLocation: loadData.dropoffCity || '',
+          status: loadData.status || 'pending',
+          paymentStatus: loadData.paymentStatus || 'due',
+          paymentAmount: loadData.paymentAmount ? loadData.paymentAmount.toString() : '',
+          dispatcherPercentage: loadData.dispatcherPercentage ? loadData.dispatcherPercentage.toString() : '',
+          miles: loadData.miles ? loadData.miles.toString() : '',
+          truckId: loadData.truckId || '',
+          currentTruckMileage: undefined, // Don't pre-fill mileage when loading existing load
+          notes: loadData.notes || '',
+          fuelStops: loadData.fuelStops ? loadData.fuelStops.map(stop => ({
+            id: stop.id,
+            location: stop.location,
+            gallons: stop.gallons.toString(),
+            pricePerGallon: stop.pricePerGallon.toString(),
+            date: stop.date,
+            notes: stop.notes || '',
+          })) : [],
+        });
+      }
+    }
+  }, [selectedTruckId, params.loadId, form, isNewLoad]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setIsLoading(true);
       // In a real app, this would be an API call
       await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Update truck mileage in mockTrucks
+      const truckIndex = mockTrucks.findIndex(t => t.id === values.truckId);
+      if (truckIndex !== -1) {
+        mockTrucks[truckIndex].mileage = parseInt(values.currentTruckMileage);
+      }
 
       // Calculate total fuel cost and gallons
       const fuelStops = values.fuelStops.map(stop => ({
@@ -139,33 +158,51 @@ export default function EditLoadPage({ params }: { params: { loadId: string } })
       const totalFuelGallons = fuelStops.reduce((sum, stop) => sum + stop.gallons, 0);
       const averagePricePerGallon = totalFuelGallons > 0 ? totalFuelCost / totalFuelGallons : 0;
 
-      // Update the mock data
-      const loadIndex = mockLoads.findIndex(l => l.id === loadId);
-      if (loadIndex !== -1) {
-        mockLoads[loadIndex] = {
-          ...mockLoads[loadIndex],
-          name: values.name,
+      if (isNewLoad) {
+        // Add new load
+        mockLoads.push({
+          id: crypto.randomUUID(),
+          ...values,
           pickupCity: values.pickupLocation,
           dropoffCity: values.deliveryLocation,
-          status: values.status,
-          paymentStatus: values.paymentStatus,
           paymentAmount: parseFloat(values.paymentAmount),
           dispatcherPercentage: parseFloat(values.dispatcherPercentage),
           miles: parseFloat(values.miles),
-          truckId: values.truckId,
-          notes: values.notes,
+          currentTruckMileage: parseInt(values.currentTruckMileage),
           fuelStops,
           totalFuelCost,
           totalFuelGallons,
           averagePricePerGallon,
+          createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-        };
+        });
+        toast.success('Load added successfully');
+      } else {
+        // Update existing load
+        const loadIndex = mockLoads.findIndex(l => l.id === params.loadId);
+        if (loadIndex !== -1) {
+          mockLoads[loadIndex] = {
+            ...mockLoads[loadIndex],
+            ...values,
+            pickupCity: values.pickupLocation,
+            dropoffCity: values.deliveryLocation,
+            paymentAmount: parseFloat(values.paymentAmount),
+            dispatcherPercentage: parseFloat(values.dispatcherPercentage),
+            miles: parseFloat(values.miles),
+            currentTruckMileage: parseInt(values.currentTruckMileage),
+            fuelStops,
+            totalFuelCost,
+            totalFuelGallons,
+            averagePricePerGallon,
+            updatedAt: new Date().toISOString(),
+          };
+        }
+        toast.success('Load updated successfully');
       }
 
-      toast.success('Load updated successfully');
       router.push('/loads');
     } catch (error) {
-      toast.error('Failed to update load');
+      toast.error(isNewLoad ? 'Failed to add load' : 'Failed to update load');
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -182,34 +219,21 @@ export default function EditLoadPage({ params }: { params: { loadId: string } })
     });
   };
 
-  if (!load) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-muted-foreground">Load not found</p>
-      </div>
-    );
-  }
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="max-w-2xl mx-auto"
+      className="max-w-2xl mx-auto px-6 pt-16"
     >
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">Edit Load</h1>
-        <Button
-          variant="outline"
-          onClick={() => router.back()}
-        >
-          Cancel
-        </Button>
+      <div className="flex flex-col mb-6">
+        <h1 className="text-3xl font-bold">{isNewLoad ? 'New Load' : 'Edit Load'}</h1>
+        <p className="text-gray-400 mt-1">{isNewLoad ? 'Add a new load to your schedule' : 'Edit your load'}</p>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="name"
@@ -218,7 +242,7 @@ export default function EditLoadPage({ params }: { params: { loadId: string } })
                   <FormLabel>Load Name</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Enter load name"
+                      placeholder="LA to NYC Route"
                       disabled={isLoading}
                       {...field}
                     />
@@ -233,10 +257,10 @@ export default function EditLoadPage({ params }: { params: { loadId: string } })
               name="pickupLocation"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Pickup Location</FormLabel>
+                  <FormLabel>Pickup City</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Enter pickup location"
+                      placeholder="Los Angeles, CA"
                       disabled={isLoading}
                       {...field}
                     />
@@ -251,10 +275,67 @@ export default function EditLoadPage({ params }: { params: { loadId: string } })
               name="deliveryLocation"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Delivery Location</FormLabel>
+                  <FormLabel>Dropoff City</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Enter delivery location"
+                      placeholder="New York, NY"
+                      disabled={isLoading}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="dispatcherPercentage"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Dispatcher %</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      disabled={isLoading}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="paymentAmount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment Amount</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      disabled={isLoading}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="miles"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Miles</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="0"
                       disabled={isLoading}
                       {...field}
                     />
@@ -277,7 +358,7 @@ export default function EditLoadPage({ params }: { params: { loadId: string } })
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
+                        <SelectValue placeholder="Pending" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -305,7 +386,7 @@ export default function EditLoadPage({ params }: { params: { loadId: string } })
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select payment status" />
+                        <SelectValue placeholder="Due" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -322,72 +403,47 @@ export default function EditLoadPage({ params }: { params: { loadId: string } })
 
             <FormField
               control={form.control}
-              name="paymentAmount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment Amount ($)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="Enter payment amount"
-                      disabled={isLoading}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="dispatcherPercentage"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Dispatcher Percentage (%)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="Enter dispatcher percentage"
-                      disabled={isLoading}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="miles"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Miles</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="Enter miles"
-                      disabled={isLoading}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="truckId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Truck ID</FormLabel>
+                  <FormLabel>Select Truck</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    disabled={isLoading}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a truck" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {mockTrucks.map((truck) => (
+                        <SelectItem key={truck.id} value={truck.id}>
+                          {truck.name} - {truck.mileage.toLocaleString()} miles
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="currentTruckMileage"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Current Truck Mileage</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Enter truck ID"
-                      disabled={isLoading}
+                      type="number"
+                      placeholder="Enter current mileage"
+                      disabled={isLoading || !selectedTruckId}
                       {...field}
+                      value={field.value || ''}
+                      onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -396,140 +452,139 @@ export default function EditLoadPage({ params }: { params: { loadId: string } })
             />
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-4 mt-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Fuel Stops</h2>
+              <h2 className="text-lg font-semibold">Fuel Stops</h2>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={addFuelStop}
                 disabled={isLoading}
+                className="bg-[#18181b]/30 border-gray-800/50 hover:bg-[#18181b]/50 hover:border-gray-700/50"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Fuel Stop
               </Button>
             </div>
 
-            {fields.length === 0 ? (
-              <div className="text-center py-6 border border-dashed rounded-md">
-                <p className="text-muted-foreground">No fuel stops added yet</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {fields.map((field, index) => (
-                  <div key={field.id} className="p-4 border rounded-md space-y-4">
-                    <div className="flex justify-between items-center">
-                      <h3 className="font-medium">Fuel Stop #{index + 1}</h3>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => remove(index)}
-                        disabled={isLoading}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name={`fuelStops.${index}.location`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Location</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="Enter location"
-                                disabled={isLoading}
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name={`fuelStops.${index}.date`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Date</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="date"
-                                disabled={isLoading}
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name={`fuelStops.${index}.gallons`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Gallons</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                placeholder="Enter gallons"
-                                disabled={isLoading}
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name={`fuelStops.${index}.pricePerGallon`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Price Per Gallon ($)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                placeholder="Enter price per gallon"
-                                disabled={isLoading}
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name={`fuelStops.${index}.notes`}
-                        render={({ field }) => (
-                          <FormItem className="md:col-span-2">
-                            <FormLabel>Notes</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="Enter notes (optional)"
-                                disabled={isLoading}
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                ))}
+            {fields.length === 0 && (
+              <div className="text-center py-6 text-gray-400">
+                No fuel stops added yet. Click "Add Fuel Stop" to add one.
               </div>
             )}
+
+            {fields.map((field, index) => (
+              <div key={field.id} className="p-4 border rounded-md space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-medium">Fuel Stop #{index + 1}</h3>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => remove(index)}
+                    disabled={isLoading}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name={`fuelStops.${index}.location`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Location</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter location"
+                            disabled={isLoading}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`fuelStops.${index}.date`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Date</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            disabled={isLoading}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`fuelStops.${index}.gallons`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Gallons</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Enter gallons"
+                            disabled={isLoading}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`fuelStops.${index}.pricePerGallon`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Price Per Gallon ($)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="Enter price per gallon"
+                            disabled={isLoading}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`fuelStops.${index}.notes`}
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Notes</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter notes (optional)"
+                            disabled={isLoading}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
 
           <FormField
@@ -550,17 +605,29 @@ export default function EditLoadPage({ params }: { params: { loadId: string } })
             )}
           />
 
-          <div className="flex justify-end space-x-4">
+          <div className="flex justify-end gap-3 mt-8">
             <Button
               type="button"
               variant="outline"
               onClick={() => router.back()}
               disabled={isLoading}
+              className="bg-[#18181b]/30 border-gray-800/50 hover:bg-[#18181b]/50 hover:border-gray-700/50"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Save Changes'}
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="bg-orange-600 hover:bg-orange-700 text-white border border-orange-500"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {isNewLoad ? 'Creating...' : 'Saving...'}
+                </>
+              ) : (
+                isNewLoad ? 'Create Load' : 'Edit Load'
+              )}
             </Button>
           </div>
         </form>

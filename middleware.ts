@@ -2,21 +2,25 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  // Check for authentication
-  const hasAuthCookie = request.cookies.has('user');
-  const isAuthPage = request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup';
+  const { pathname } = request.nextUrl;
+  const userCookie = request.cookies.get('user');
 
-  // Always redirect to login if not authenticated and not on auth pages
-  if (!hasAuthCookie && !isAuthPage) {
+  // Check if the route is protected (starts with /dashboard)
+  const isProtectedRoute = pathname.startsWith('/dashboard');
+
+  // Check if the route is a public route (landing page, login, signup)
+  const isPublicRoute = ['/', '/login', '/signup'].includes(pathname);
+
+  // If trying to access a protected route without being authenticated
+  if (isProtectedRoute && !userCookie) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // Redirect to dashboard if authenticated and trying to access auth pages
-  if (hasAuthCookie && isAuthPage) {
-    return NextResponse.redirect(new URL('/', request.url));
+  // If trying to access auth pages while authenticated
+  if (userCookie && (pathname === '/login' || pathname === '/signup')) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  // Continue with the request
   return NextResponse.next();
 }
 
@@ -29,7 +33,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - public folder
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
   ],
 };

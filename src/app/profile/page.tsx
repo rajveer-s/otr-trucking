@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { User, Mail, Phone, Calendar, Truck, BadgeCheck } from 'lucide-react';
@@ -47,11 +48,17 @@ export default function ProfilePage() {
             <Card className="bg-[#18181b]/80 backdrop-blur-xl border-gray-800/50">
               <CardContent className="p-6">
                 <div className="flex flex-col items-center space-y-4">
-                  <div className="relative w-48 h-48 rounded-full overflow-hidden border-4 border-gray-800/50">
-                    <img
-                      src={user.avatar || '/default-avatar.png'}
+                  <div className="relative w-48 h-48 rounded-full overflow-hidden border-4 border-gray-800/50 bg-gray-800">
+                    <Image
+                      src={user.avatar || 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=faces&q=80'}
                       alt={user.name}
+                      width={192}
+                      height={192}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // @ts-ignore
+                        e.target.src = 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=faces&q=80';
+                      }}
                     />
                   </div>
                   <div className="text-center">
