@@ -9,21 +9,30 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Loader2, Eye, EyeOff, Home, Truck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useForm } from 'react-hook-form';
+
+type FormData = {
+  email: string;
+  password: string;
+};
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>();
+
+  const onSubmit = async (data: FormData) => {
     setIsLoading(true);
 
     try {
-      await login(email, password);
+      await login(data.email, data.password);
       router.push('/dashboard');
     } catch (error) {
       toast.error('Invalid email or password. Please try again.');
@@ -69,29 +78,39 @@ export default function LoginPage() {
             transition={{ delay: 0.2 }}
             className="bg-[#18181b]/50 backdrop-blur-sm rounded-2xl p-8 space-y-6 border border-gray-800/50 hover:border-gray-700/50 transition-all"
           >
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <Input
                 id="email"
                 type="email"
                 placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                {...register('email', {
+                  required: 'Email is required',
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: 'Invalid email address',
+                  },
+                })}
                 disabled={isLoading}
                 className="bg-[#18181b]/50 border-gray-800/50 hover:border-gray-700/50 text-white placeholder-gray-400 h-14 text-base"
               />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>
+              )}
 
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
+                  {...register('password', {
+                    required: 'Password is required',
+                  })}
                   disabled={isLoading}
                   className="bg-[#18181b]/50 border-gray-800/50 hover:border-gray-700/50 text-white placeholder-gray-400 h-14 text-base"
                 />
+                {errors.password && (
+                  <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>
+                )}
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -110,11 +129,6 @@ export default function LoginPage() {
                 type="submit"
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white h-14 text-lg touch-manipulation"
                 disabled={isLoading}
-                onClick={(e) => {
-                  // Ensure the click event is handled properly on touch devices
-                  e.preventDefault();
-                  handleSubmit(e);
-                }}
               >
                 {isLoading ? (
                   <>
