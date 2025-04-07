@@ -29,16 +29,16 @@ import { mockTrucks } from '@/lib/data/mockData';
 import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  make: z.string().min(1, 'Make is required'),
-  model: z.string().min(1, 'Model is required'),
-  year: z.string().min(1, 'Year is required'),
-  vin: z.string().min(1, 'VIN is required'),
-  licensePlate: z.string().min(1, 'License plate is required'),
-  status: z.enum(['available', 'in-use', 'maintenance']),
-  mileage: z.string().min(1, 'Mileage is required'),
-  lastMaintenance: z.string().optional(),
-  nextMaintenance: z.string().optional(),
+  name: z.string().min(1, { message: "Name is required" }),
+  make: z.string().min(1, { message: "Make is required" }),
+  model: z.string().min(1, { message: "Model is required" }),
+  year: z.string().min(1, { message: "Year is required" }),
+  vin: z.string().min(1, { message: "VIN is required" }),
+  licensePlate: z.string().min(1, { message: "License plate is required" }),
+  status: z.enum(["available", "in-use", "maintenance"]),
+  mileage: z.string().min(1, { message: "Mileage is required" }),
+  lastMaintenance: z.string().min(1, { message: "Last maintenance date is required" }),
+  nextMaintenance: z.string().min(1, { message: "Next maintenance date is required" }),
   notes: z.string().optional(),
 });
 
@@ -75,6 +75,12 @@ export default function NewTruckPage() {
         ...values,
         year: parseInt(values.year),
         mileage: parseInt(values.mileage),
+        lastMaintenanceMileage: parseInt(values.mileage),
+        fuelEfficiency: 0,
+        nextOilChangeDue: parseInt(values.mileage) + 25000,
+        oilChanges: [],
+        lastMaintenance: values.lastMaintenance || new Date().toISOString().split('T')[0],
+        nextMaintenance: values.nextMaintenance || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });

@@ -49,7 +49,7 @@ const formSchema = z.object({
   dispatcherPercentage: z.string().min(1, { message: "Dispatcher percentage is required" }),
   miles: z.string().min(1, { message: "Miles is required" }),
   truckId: z.string().min(1, 'Truck is required'),
-  currentTruckMileage: z.string().min(1, 'Current truck mileage is required'),
+  currentTruckMileage: z.string().optional(),
   notes: z.string().optional(),
   fuelStops: z.array(fuelStopSchema),
 });
@@ -79,7 +79,7 @@ export default function EditLoadPage({ params }: { params: { loadId: string } })
       dispatcherPercentage: '',
       miles: '',
       truckId: '',
-      currentTruckMileage: undefined,
+      currentTruckMileage: '',
       notes: '',
       fuelStops: [],
     },
@@ -96,11 +96,11 @@ export default function EditLoadPage({ params }: { params: { loadId: string } })
     const truck = mockTrucks.find(t => t.id === selectedTruckId);
     if (truck) {
       setSelectedTruck(truck);
-      // Remove pre-filling of mileage
-      form.setValue('currentTruckMileage', undefined);
+      // Set empty string instead of undefined
+      form.setValue('currentTruckMileage', '');
     } else {
       setSelectedTruck(null);
-      form.setValue('currentTruckMileage', undefined);
+      form.setValue('currentTruckMileage', '');
     }
     if (!isNewLoad) {
       // In a real app, this would be an API call
@@ -116,7 +116,7 @@ export default function EditLoadPage({ params }: { params: { loadId: string } })
           dispatcherPercentage: loadData.dispatcherPercentage ? loadData.dispatcherPercentage.toString() : '',
           miles: loadData.miles ? loadData.miles.toString() : '',
           truckId: loadData.truckId || '',
-          currentTruckMileage: undefined, // Don't pre-fill mileage when loading existing load
+          currentTruckMileage: '', // Don't pre-fill mileage when loading existing load
           notes: loadData.notes || '',
           fuelStops: loadData.fuelStops ? loadData.fuelStops.map(stop => ({
             id: stop.id,
@@ -139,7 +139,7 @@ export default function EditLoadPage({ params }: { params: { loadId: string } })
 
       // Update truck mileage in mockTrucks
       const truckIndex = mockTrucks.findIndex(t => t.id === values.truckId);
-      if (truckIndex !== -1) {
+      if (truckIndex !== -1 && values.currentTruckMileage) {
         mockTrucks[truckIndex].mileage = parseInt(values.currentTruckMileage);
       }
 
@@ -168,11 +168,14 @@ export default function EditLoadPage({ params }: { params: { loadId: string } })
           paymentAmount: parseFloat(values.paymentAmount),
           dispatcherPercentage: parseFloat(values.dispatcherPercentage),
           miles: parseFloat(values.miles),
-          currentTruckMileage: parseInt(values.currentTruckMileage),
+          currentTruckMileage: values.currentTruckMileage ? parseInt(values.currentTruckMileage) : 0,
           fuelStops,
           totalFuelCost,
           totalFuelGallons,
           averagePricePerGallon,
+          fuelCost: totalFuelCost,
+          fuelGallons: totalFuelGallons,
+          pricePerGallon: averagePricePerGallon,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
@@ -189,11 +192,14 @@ export default function EditLoadPage({ params }: { params: { loadId: string } })
             paymentAmount: parseFloat(values.paymentAmount),
             dispatcherPercentage: parseFloat(values.dispatcherPercentage),
             miles: parseFloat(values.miles),
-            currentTruckMileage: parseInt(values.currentTruckMileage),
+            currentTruckMileage: values.currentTruckMileage ? parseInt(values.currentTruckMileage) : 0,
             fuelStops,
             totalFuelCost,
             totalFuelGallons,
             averagePricePerGallon,
+            fuelCost: totalFuelCost,
+            fuelGallons: totalFuelGallons,
+            pricePerGallon: averagePricePerGallon,
             updatedAt: new Date().toISOString(),
           };
         }

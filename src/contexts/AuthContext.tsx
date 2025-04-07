@@ -10,6 +10,14 @@ interface User {
   email: string;
   role: string;
   avatar?: string;
+  phone?: string;
+  createdAt: string;
+  updatedAt: string;
+  licenseNumber?: string;
+  experience?: string;
+  preferredRoutes?: string[];
+  department?: string;
+  accessLevel?: string;
 }
 
 interface AuthContextType {
@@ -24,6 +32,16 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   login: async () => {},
   logout: () => {},
+});
+
+// Cookie options based on environment
+const getCookieOptions = () => ({
+  expires: 7,
+  // Only use secure in production
+  ...(process.env.NODE_ENV === 'production' && {
+    secure: true,
+    sameSite: 'strict' as const
+  })
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -65,21 +83,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: email,
         role: 'owner',
         avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=faces&q=80',
+        phone: '(555) 123-4567',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        department: 'Operations',
+        accessLevel: 'Full',
       };
 
-      // Store authentication token (expires in 7 days)
-      Cookies.set('auth_token', 'mock_jwt_token', {
-        expires: 7,
-        secure: true,
-        sameSite: 'strict'
-      });
-
-      // Store user data (expires in 7 days)
-      Cookies.set('user_data', JSON.stringify(mockUser), {
-        expires: 7,
-        secure: true,
-        sameSite: 'strict'
-      });
+      // Store authentication token and user data
+      const cookieOptions = getCookieOptions();
+      Cookies.set('auth_token', 'mock_jwt_token', cookieOptions);
+      Cookies.set('user_data', JSON.stringify(mockUser), cookieOptions);
 
       setUser(mockUser);
       router.push('/dashboard');

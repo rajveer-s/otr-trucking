@@ -161,14 +161,14 @@ export default function TrucksPage() {
                   </div>
                   <div>
                     <div className="text-sm text-gray-400">Last Service</div>
-                    <div className="font-medium text-white">{formatDate(truck.lastService)}</div>
+                    <div className="font-medium text-white">{formatDate(truck.lastMaintenance)}</div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-800/50">
                   <div>
                     <div className="text-sm text-gray-400">Next Service</div>
-                    <div className="font-medium text-white">{formatDate(truck.nextService)}</div>
+                    <div className="font-medium text-white">{formatDate(truck.nextMaintenance)}</div>
                   </div>
                   <div className="flex justify-end">
                     <Button variant="outline" size="sm" className="bg-[#18181b]/30 border-gray-800/50 hover:bg-[#18181b]/50 hover:border-gray-700/50" asChild>
