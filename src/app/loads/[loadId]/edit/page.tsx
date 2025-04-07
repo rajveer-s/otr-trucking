@@ -230,7 +230,7 @@ export default function EditLoadPage({ params }: { params: { loadId: string } })
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="max-w-2xl mx-auto px-6 pt-16"
+      className="max-w-2xl mx-auto px-6 p-8"
     >
       <div className="flex flex-col mb-6">
         <h1 className="text-3xl font-bold">{isNewLoad ? 'New Load' : 'Edit Load'}</h1>

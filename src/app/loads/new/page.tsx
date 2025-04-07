@@ -164,7 +164,7 @@ export default function NewLoadPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto pt-6">
+    <div className="max-w-2xl mx-auto p-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

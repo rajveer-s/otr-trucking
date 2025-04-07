@@ -100,7 +100,7 @@ export default function NewTruckPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="max-w-2xl mx-auto pt-6"
+      className="max-w-2xl mx-auto p-8"
     >
       <div className="flex items-center justify-between mb-8">
         <div>
