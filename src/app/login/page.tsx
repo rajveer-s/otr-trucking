@@ -33,7 +33,6 @@ export default function LoginPage() {
 
     try {
       await login(data.email, data.password);
-      router.push('/dashboard');
     } catch (error) {
       toast.error('Invalid email or password. Please try again.');
     } finally {
