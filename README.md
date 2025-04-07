@@ -1,36 +1,123 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OTR Trucking App
+
+![OTR Trucking App](public/screenshot1.png)
+
+## Overview
+
+OTR Trucking App is a comprehensive fleet management solution designed specifically for over-the-road trucking companies. The application streamlines operations, improves efficiency, and provides real-time insights into your fleet's performance.
+
+## Features
+
+### 🚛 Fleet Management
+- **Truck Tracking**: Monitor your entire fleet in real-time
+- **Load Management**: Assign and track loads across your fleet
+- **Driver Profiles**: Maintain detailed driver information and performance metrics
+
+### 📊 Analytics & Reporting
+- **Financial Dashboard**: Track revenue, expenses, and profitability
+- **Performance Metrics**: Monitor fuel efficiency, on-time delivery rates, and more
+- **Year-over-Year Comparisons**: Analyze trends and make data-driven decisions
+
+### 🔧 Maintenance & Compliance
+- **Automated Fuel Receipt Scanning**: Upload receipts and let AI extract data automatically
+- **Mileage & Oil Change Reminders**: Never miss maintenance with smart alerts
+- **Paperwork Organizer**: Store and organize all your documents digitally
+
+### 💰 Financial Tools
+- **Dispatcher Cut Calculator**: Calculate dispatcher fees instantly
+- **Expense Tracking**: Monitor and categorize all fleet-related expenses
+- **Invoice Management**: Generate and track invoices for clients
+
+## Screenshots
+
+### Dashboard
+![Dashboard](public/screenshot2.png)
+
+### Load Management
+![Load Management](public/screenshot3.png)
+
+### Analytics
+![Analytics](public/screenshot4.png)
+
+## Technologies Used
+
+### Frontend
+- **Next.js 14**: React framework with server-side rendering
+- **TypeScript**: Type-safe JavaScript
+- **Tailwind CSS**: Utility-first CSS framework
+- **Framer Motion**: Animation library
+- **React Hook Form**: Form validation
+- **Zod**: Schema validation
+- **Recharts**: Charting library
+
+### UI Components
+- **Radix UI**: Unstyled, accessible components
+- **Lucide React**: Icon library
+- **Sonner**: Toast notifications
+
+### Authentication
+- **Custom Auth Solution**: Secure authentication with mobile compatibility
+- **Native Browser Cookies**: Reliable cookie management across all devices
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+- Node.js 18.x or higher
+- npm or yarn
 
+### Installation
+
+1. Clone the repository
+```bash
+git clone https://github.com/yourusername/otr-trucking-app.git
+cd otr-trucking-app
+```
+
+2. Install dependencies
+```bash
+npm install
+# or
+yarn install
+```
+
+3. Run the development server
 ```bash
 npm run dev
 # or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Mobile Login Solution
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The application includes a robust mobile login solution that works reliably across all devices, including mobile phones and iPads. Here's what makes it work:
 
-## Learn More
+### Key Features
 
-To learn more about Next.js, take a look at the following resources:
+- **Native Browser Cookies**: Uses native browser cookie functions instead of third-party libraries for better mobile compatibility
+- **Simplified Authentication Flow**: Streamlined login process with minimal complexity
+- **Consistent Cookie Management**: Uses a consistent approach for setting and retrieving cookies
+- **Mobile-Friendly Form Handling**: Optimized form submission for touch devices
+- **Improved Error Handling**: Better error messages and state management
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Implementation Details
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The mobile login solution includes:
 
-## Deploy on Vercel
+1. Custom cookie helper functions (`setCookie`, `getCookie`, `deleteCookie`)
+2. Middleware that checks for multiple cookie formats
+3. Simplified login form with proper touch event handling
+4. Consistent authentication state management
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This approach ensures reliable authentication across all devices and browsers, with special attention to mobile compatibility.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Icons provided by [Lucide](https://lucide.dev/)
+- UI components inspired by [shadcn/ui](https://ui.shadcn.com/)
+- Mock data generated for demonstration purposes
