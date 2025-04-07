@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -17,51 +17,29 @@ type FormData = {
 };
 
 export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuth();
   const router = useRouter();
+  const { login, isAuthenticated } = useAuth();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<FormData>();
-
-  const onSubmit = async (data: FormData) => {
-    setIsLoading(true);
-
-    try {
-      // Direct login without any redirect in this component
-      await login(data.email, data.password);
-    } catch (error) {
-      toast.error('Invalid email or password. Please try again.');
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/dashboard');
     }
-  };
+  }, [isAuthenticated, router]);
 
-  // Direct login function for mobile devices
-  const handleDirectLogin = async () => {
-    const emailInput = document.getElementById('email') as HTMLInputElement;
-    const passwordInput = document.getElementById('password') as HTMLInputElement;
-
-    if (!emailInput || !passwordInput) return;
-
-    const email = emailInput.value;
-    const password = passwordInput.value;
-
-    if (!email || !password) {
-      toast.error('Please enter both email and password');
-      return;
-    }
-
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
     setIsLoading(true);
 
     try {
       await login(email, password);
-    } catch (error) {
-      toast.error('Invalid email or password. Please try again.');
+      router.push('/dashboard');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to login');
     } finally {
       setIsLoading(false);
     }
@@ -105,7 +83,7 @@ export default function LoginPage() {
             className="bg-[#18181b]/50 backdrop-blur-sm rounded-2xl p-8 space-y-6 border border-gray-800/50 hover:border-gray-700/50 transition-all"
           >
             <form
-              onSubmit={handleSubmit(onSubmit)}
+              onSubmit={handleSubmit}
               className="space-y-6"
               noValidate
             >
@@ -113,79 +91,47 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 placeholder="Email"
-                {...register('email', {
-                  required: 'Email is required',
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: 'Invalid email address',
-                  },
-                })}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
                 className="bg-[#18181b]/50 border-gray-800/50 hover:border-gray-700/50 text-white placeholder-gray-400 h-14 text-base"
               />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>
+              {error && (
+                <p className="mt-1 text-sm text-red-400">{error}</p>
               )}
 
               <div className="relative">
                 <Input
                   id="password"
-                  type={showPassword ? "text" : "password"}
+                  type="password"
                   placeholder="Password"
-                  {...register('password', {
-                    required: 'Password is required',
-                  })}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
                   className="bg-[#18181b]/50 border-gray-800/50 hover:border-gray-700/50 text-white placeholder-gray-400 h-14 text-base"
                 />
-                {errors.password && (
-                  <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>
-                )}
                 <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 focus:outline-none p-2"
+                  type="submit"
                   disabled={isLoading}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 focus:outline-none p-2"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
+                  {isLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    <Eye className="h-5 w-5" />
+                    'Sign in'
                   )}
                 </button>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white h-14 text-lg touch-manipulation"
-                disabled={isLoading}
-                onClick={(e) => {
-                  // For mobile devices, use direct login
-                  if (window.innerWidth <= 768) {
-                    e.preventDefault();
-                    handleDirectLogin();
-                  }
-                }}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  'Sign in'
-                )}
-              </Button>
+              <div className="text-center">
+                <p className="text-gray-400">
+                  Don't have an account?{' '}
+                  <Link href="/signup" className="text-blue-400 hover:text-blue-300">
+                    Sign up
+                  </Link>
+                </p>
+              </div>
             </form>
-
-            <div className="text-center">
-              <p className="text-gray-400">
-                Don't have an account?{' '}
-                <Link href="/signup" className="text-blue-400 hover:text-blue-300">
-                  Sign up
-                </Link>
-              </p>
-            </div>
           </motion.div>
         </motion.div>
       </div>
