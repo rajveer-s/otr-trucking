@@ -37,10 +37,11 @@ const AuthContext = createContext<AuthContextType>({
 // Cookie options based on environment
 const getCookieOptions = () => ({
   expires: 7,
+  // Use more permissive cookie settings for better mobile compatibility
+  sameSite: 'lax' as const,
   // Only use secure in production
   ...(process.env.NODE_ENV === 'production' && {
-    secure: true,
-    sameSite: 'strict' as const
+    secure: true
   })
 });
 
@@ -76,6 +77,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('Login attempt with:', email);
+
       // Mock API call - replace with actual API call
       const mockUser: User = {
         id: '1',
@@ -92,11 +95,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Store authentication token and user data
       const cookieOptions = getCookieOptions();
-      Cookies.set('auth_token', 'mock_jwt_token', cookieOptions);
-      Cookies.set('user_data', JSON.stringify(mockUser), cookieOptions);
+      console.log('Setting cookies with options:', cookieOptions);
 
-      setUser(mockUser);
-      router.push('/dashboard');
+      // Set cookies with a slight delay to ensure they're properly set
+      setTimeout(() => {
+        Cookies.set('auth_token', 'mock_jwt_token', cookieOptions);
+        Cookies.set('user_data', JSON.stringify(mockUser), cookieOptions);
+
+        // Verify cookies were set
+        const token = Cookies.get('auth_token');
+        const userCookie = Cookies.get('user_data');
+        console.log('Cookies set successfully:', !!token, !!userCookie);
+
+        setUser(mockUser);
+        router.push('/dashboard');
+      }, 100);
     } catch (error) {
       console.error('Login error:', error);
       throw error;
