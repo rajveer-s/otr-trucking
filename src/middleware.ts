@@ -4,8 +4,7 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Check for both cookie formats that might be used
-  const userCookie = request.cookies.get('user');
+  // Check for auth cookies
   const userDataCookie = request.cookies.get('user_data');
   const authTokenCookie = request.cookies.get('auth_token');
 
@@ -14,9 +13,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Protect dashboard routes - check for any authentication indicator
+  // Protect dashboard routes
   if (pathname.startsWith('/dashboard')) {
-    if (!userCookie && !userDataCookie && !authTokenCookie) {
+    if (!userDataCookie && !authTokenCookie) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
   }

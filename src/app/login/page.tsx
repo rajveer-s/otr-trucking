@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -17,29 +17,25 @@ type FormData = {
 };
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const { login } = useAuth();
   const router = useRouter();
-  const { login, isAuthenticated } = useAuth();
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/dashboard');
-    }
-  }, [isAuthenticated, router]);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  const onSubmit = async (data: FormData) => {
     setIsLoading(true);
 
     try {
-      await login(email, password);
-      router.push('/dashboard');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to login');
+      await login(data.email, data.password);
+      // No need to redirect here, the AuthContext will handle it
+    } catch (error) {
+      toast.error('Invalid email or password. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -83,7 +79,7 @@ export default function LoginPage() {
             className="bg-[#18181b]/50 backdrop-blur-sm rounded-2xl p-8 space-y-6 border border-gray-800/50 hover:border-gray-700/50 transition-all"
           >
             <form
-              onSubmit={handleSubmit}
+              onSubmit={handleSubmit(onSubmit)}
               className="space-y-6"
               noValidate
             >
@@ -91,47 +87,72 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                {...register('email', {
+                  required: 'Email is required',
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: 'Invalid email address',
+                  },
+                })}
                 disabled={isLoading}
                 className="bg-[#18181b]/50 border-gray-800/50 hover:border-gray-700/50 text-white placeholder-gray-400 h-14 text-base"
               />
-              {error && (
-                <p className="mt-1 text-sm text-red-400">{error}</p>
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>
               )}
 
               <div className="relative">
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  {...register('password', {
+                    required: 'Password is required',
+                  })}
                   disabled={isLoading}
                   className="bg-[#18181b]/50 border-gray-800/50 hover:border-gray-700/50 text-white placeholder-gray-400 h-14 text-base"
                 />
+                {errors.password && (
+                  <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>
+                )}
                 <button
-                  type="submit"
-                  disabled={isLoading}
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 focus:outline-none p-2"
+                  disabled={isLoading}
                 >
-                  {isLoading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
                   ) : (
-                    'Sign in'
+                    <Eye className="h-5 w-5" />
                   )}
                 </button>
               </div>
 
-              <div className="text-center">
-                <p className="text-gray-400">
-                  Don't have an account?{' '}
-                  <Link href="/signup" className="text-blue-400 hover:text-blue-300">
-                    Sign up
-                  </Link>
-                </p>
-              </div>
+              <Button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white h-14 text-lg"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  'Sign in'
+                )}
+              </Button>
             </form>
+
+            <div className="text-center">
+              <p className="text-gray-400">
+                Don't have an account?{' '}
+                <Link href="/signup" className="text-blue-400 hover:text-blue-300">
+                  Sign up
+                </Link>
+              </p>
+            </div>
           </motion.div>
         </motion.div>
       </div>
