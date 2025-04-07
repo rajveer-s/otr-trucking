@@ -41,7 +41,7 @@ const getCookieOptions = () => ({
   sameSite: 'lax' as const,
   // Only use secure in production and when on HTTPS
   ...(process.env.NODE_ENV === 'production' && window.location.protocol === 'https:' && {
-    secure: true
+    secure: false
   })
 });
 
