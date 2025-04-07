@@ -59,15 +59,14 @@ interface PageProps {
   };
 }
 
-export default function EditLoadPage({ params }: any) {
+export default function EditLoadPage({ params }: { params: { loadId: string } }) {
   const router = useRouter();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [load, setLoad] = useState<any>(null);
 
-  // Unwrap the params using React.use()
-  const unwrappedParams = use(params) as { loadId: string };
-  const loadId = unwrappedParams.loadId;
+  // Get the loadId directly from params
+  const loadId = params.loadId;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

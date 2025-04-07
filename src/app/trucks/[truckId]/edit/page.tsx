@@ -27,7 +27,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { mockTrucks } from '@/lib/data/mockData';
-import { use } from 'react';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -43,15 +42,14 @@ const formSchema = z.object({
   notes: z.string().optional(),
 });
 
-export default function EditTruckPage({ params }: any) {
+export default function EditTruckPage({ params }: { params: { truckId: string } }) {
   const router = useRouter();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [truck, setTruck] = useState<any>(null);
 
-  // Unwrap the params using React.use()
-  const unwrappedParams = use(params) as { truckId: string };
-  const truckId = unwrappedParams.truckId;
+  // Get the truckId directly from params
+  const truckId = params.truckId;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { mockUsers } from '@/lib/data/mockData';
 import { User } from '@/types';
+import Cookies from 'js-cookie';
 
 interface AuthContextType {
   user: User | null;
@@ -19,20 +20,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // Load user from localStorage on initial load
+  // Load user from cookies on initial load
   useEffect(() => {
     try {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
+      const userCookie = Cookies.get('user');
+      if (userCookie) {
+        setUser(JSON.parse(userCookie));
+      } else {
+        // If no cookie is found, redirect to login
+        router.push('/login');
       }
     } catch (error) {
-      console.error('Error loading user from localStorage:', error);
-      localStorage.removeItem('user');
+      console.error('Error loading user from cookies:', error);
+      Cookies.remove('user');
+      router.push('/login');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [router]);
 
   const login = async (email: string, password: string): Promise<void> => {
     try {
@@ -60,7 +65,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
 
       setUser(userData);
-      localStorage.setItem('user', JSON.stringify(userData));
+      // Store in cookie instead of localStorage
+      Cookies.set('user', JSON.stringify(userData), { expires: 7 }); // Expires in 7 days
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -71,8 +77,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Clear user state
     setUser(null);
 
-    // Clear localStorage
-    localStorage.removeItem('user');
+    // Clear cookie
+    Cookies.remove('user');
 
     // Force a hard reload to clear all state
     window.location.href = '/login';

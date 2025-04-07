@@ -28,6 +28,7 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Loads', href: '/loads', icon: FileText },
   { name: 'Trucks', href: '/trucks', icon: Truck },
+  { name: 'Profile', href: '/profile', icon: User },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
