@@ -1,8 +1,3 @@
 {
-  "/dashboard/page": "app/dashboard/page.js",
-  "/loads/new/page": "app/loads/new/page.js",
-  "/trucks/page": "app/trucks/page.js",
-  "/trucks/new/page": "app/trucks/new/page.js",
-  "/loads/[loadId]/edit/page": "app/loads/[loadId]/edit/page.js",
-  "/trucks/[truckId]/edit/page": "app/trucks/[truckId]/edit/page.js"
+  "/page": "app/page.js"
 }

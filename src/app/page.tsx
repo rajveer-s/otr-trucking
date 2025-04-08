@@ -21,6 +21,7 @@ import {
   Smartphone,
   Wifi,
 } from 'lucide-react';
+import MarketingLayout from './(marketing)/layout';
 
 const features = [
   {
@@ -156,6 +157,7 @@ const faqs = [
 
 export default function LandingPage() {
   return (
+    <MarketingLayout>
     <div className="relative">
       {/* Hero Section */}
       <section className="relative pt-32 pb-24 overflow-hidden">
@@ -523,5 +525,6 @@ export default function LandingPage() {
         </div>
       </section>
     </div>
+    </MarketingLayout>
   );
 }

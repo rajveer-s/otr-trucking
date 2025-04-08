@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Logo } from '@/components/Logo';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -19,9 +20,10 @@ export function MarketingHeader() {
   return (
     <header className="fixed inset-x-0 top-0 z-50 backdrop-blur-sm bg-background/80 border-b">
       <nav className="flex items-center justify-between p-6 lg:px-8 max-w-7xl mx-auto" aria-label="Global">
-        <div className="flex lg:flex-1">
+        <div className="flex lg:flex-1 gap-2">
+        <Logo />
           <Link href="/" className="-m-1.5 p-1.5 text-xl font-bold">
-            OTR Assistant
+            | Assistant
           </Link>
         </div>
 
@@ -41,7 +43,7 @@ export function MarketingHeader() {
             <a
               key={item.name}
               href={item.href}
-              className="text-sm font-semibold leading-6 hover:text-primary"
+              className="text-sm font-semibold leading-6 hover:text-primary hover:outline p-2 rounded-md"
             >
               {item.name}
             </a>
@@ -49,11 +51,8 @@ export function MarketingHeader() {
         </div>
 
         <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:gap-x-4">
-          <Button variant="ghost" asChild>
+          <Button asChild size="lg" className="bg-orange-500 hover:bg-orange-600 text-white">
             <Link href="/login">Sign in</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/login">Try for free</Link>
           </Button>
         </div>
       </nav>
